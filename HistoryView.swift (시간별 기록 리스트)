@@ -1,0 +1,62 @@
+import SwiftUI
+
+struct HistoryView: View {
+    @EnvironmentObject private var vm: WaterTrackerViewModel
+    @State private var showDeleteAlert = false
+    @State private var toDelete: DrinkEntry?
+
+    var body: some View {
+        List {
+            Section {
+                HStack {
+                    Text("날짜")
+                    Spacer()
+                    Text(vm.today.date.formattedDate())
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("총 섭취량")
+                    Spacer()
+                    Text("\(vm.today.totalML) ml")
+                }
+                HStack {
+                    Text("목표")
+                    Spacer()
+                    Text("\(vm.today.goalML) ml")
+                }
+            }
+
+            Section(header: Text("시간별 기록")) {
+                if vm.today.entries.isEmpty {
+                    Text("기록이 없습니다.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(vm.today.entries.sorted(by: { $0.timestamp > $1.timestamp })) { entry in
+                        HStack {
+                            Text(entry.timestamp.formattedTime())
+                            Spacer()
+                            Text("\(entry.amountML) ml")
+                                .fontWeight(.semibold)
+                        }
+                        .contentShape(Rectangle())
+                        .onLongPressGesture {
+                            toDelete = entry
+                            showDeleteAlert = true
+                        }
+                    }
+                }
+            }
+        }
+        .alert("이 기록을 삭제할까요?", isPresented: $showDeleteAlert) {
+            Button("삭제", role: .destructive) {
+                if let e = toDelete { vm.removeEntry(e) }
+            }
+            Button("취소", role: .cancel) { }
+        } message: {
+            if let e = toDelete {
+                Text("\(e.timestamp.formattedTime()) • \(e.amountML) ml")
+            }
+        }
+        .navigationTitle("기록")
+    }
+}
