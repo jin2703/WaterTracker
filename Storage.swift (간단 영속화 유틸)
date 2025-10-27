@@ -1,21 +1,26 @@
-import Foundation
+import SwiftUI   // SwiftUI 프레임워크 불러오기 (UI를 선언적으로 구성할 때 사용)
 
-enum Storage {
-    static func save<T: Codable>(_ value: T, key: String) {
-        do {
-            let data = try JSONEncoder().encode(value)
-            UserDefaults.standard.set(data, forKey: key)
-        } catch {
-            print("Storage.save error:", error)
-        }
-    }
-    static func load<T: Codable>(_ type: T.Type, key: String) -> T? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        do {
-            return try JSONDecoder().decode(type, from: data)
-        } catch {
-            print("Storage.load error:", error)
-            return nil
+// SwiftUI 앱의 시작점을 정의하는 구조체
+// @main 어트리뷰트가 붙은 구조체가 앱의 진입점(entry point)이 된다.
+@main
+struct WaterTrackerApp: App {
+    // ViewModel을 전역적으로 관리하기 위한 상태 객체
+    // @StateObject는 ObservableObject를 한 번만 생성하고, 앱이 실행되는 동안 유지시킨다.
+    @StateObject private var vm = WaterTrackerViewModel()
+
+    // 앱의 전체 화면 구성(Scene)을 정의하는 부분
+    var body: some Scene {
+        // WindowGroup은 앱의 메인 윈도우(화면 그룹)를 나타내며,
+        // 하나의 iOS 앱은 일반적으로 하나의 WindowGroup을 가진다.
+        WindowGroup {
+            // RootTabView는 앱의 메인 탭 화면 (오늘 / 기록 / 설정 탭으로 구성됨)
+            RootTabView()
+                // .environmentObject()를 통해 vm(ViewModel)을 환경 객체로 주입
+                // → 하위 모든 뷰에서 @EnvironmentObject로 같은 인스턴스를 공유할 수 있다.
+                .environmentObject(vm)
+                // .onAppear: 해당 뷰가 화면에 표시될 때 실행되는 이벤트
+                // 앱 실행 시 매일 자정 기준으로 섭취 기록을 리셋하는 기능 호출
+                .onAppear { vm.resetIfNeeded() }
         }
     }
 }
