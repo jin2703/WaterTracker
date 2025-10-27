@@ -1,17 +1,22 @@
-import Foundation
+import Foundation   // 날짜(Date) 및 포맷 관련 기능을 제공하는 기본 프레임워크
 
+// MARK: - Date 확장(Extension)
+// Swift의 기본 Date 타입에 커스텀 포맷 기능을 추가하는 확장
 extension Date {
+    // 📅 formattedDate(): 날짜를 "YYYY년 M월 D일" 형식으로 변환하는 메서드
     func formattedDate() -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateStyle = .medium
-        f.timeStyle = .none
-        return f.string(from: self)
+        let f = DateFormatter()                       // 날짜 포맷터 객체 생성
+        f.locale = Locale(identifier: "ko_KR")        // 한국어 로케일 설정 (요일/오전·오후 한글로 표시)
+        f.dateStyle = .medium                         // "2025. 10. 28." 같은 중간 길이 형식 지정
+        f.timeStyle = .none                           // 시간은 표시하지 않음
+        return f.string(from: self)                   // Date → String 변환 결과 반환
     }
+
+    // 🕒 formattedTime(): 시간을 "오전/오후 h:mm" 형식으로 변환하는 메서드
     func formattedTime() -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ko_KR")
-        f.dateFormat = "a h:mm"
-        return f.string(from: self)
+        let f = DateFormatter()                       // 날짜 포맷터 생성
+        f.locale = Locale(identifier: "ko_KR")        // 한국어 로케일 지정
+        f.dateFormat = "a h:mm"                       // 오전/오후 + 시:분 (예: "오전 9:15")
+        return f.string(from: self)                   // Date → String 변환
     }
 }
