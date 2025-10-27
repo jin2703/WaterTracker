@@ -1,56 +1,71 @@
-import SwiftUI
+import SwiftUI   // SwiftUI 프레임워크 임포트 (선언형 UI 구성)
 
+// 설정 화면: 목표/증가량/리셋 시각/표시 단위를 변경하는 View
 struct SettingsView: View {
+    // @EnvironmentObject: 앱 전역에서 공유 중인 ViewModel 주입 (상위에서 .environmentObject(vm))
     @EnvironmentObject private var vm: WaterTrackerViewModel
 
-    @State private var tempGoal: String = ""
-    @State private var tempStep: String = ""
-    @State private var resetHour: Int = 0
-    @State private var unit: AppSettings.Unit = .ml
+    // @State: 이 화면에서만 임시로 편집할 입력값(문자열/정수) 보관 → 저장 버튼 누를 때 ViewModel로 반영
+    @State private var tempGoal: String = ""                // 목표 섭취량 입력 텍스트
+    @State private var tempStep: String = ""                // 버튼 증가량 입력 텍스트
+    @State private var resetHour: Int = 0                   // 일일 리셋 시각(0~23)
+    @State private var unit: AppSettings.Unit = .ml         // 표시 단위 (ml/oz)
 
+    // View의 본문(UI 계층) 정의
     var body: some View {
+        // Form: iOS 설정 화면과 유사한 입력 양식 컨테이너 (섹션 단위로 그룹화)
         Form {
+            // MARK: - 목표 섭취량 설정
             Section(header: Text("목표")) {
+                // TextField: 숫자만 입력하도록 키보드 타입 지정 (문자열 상태에 바인딩)
                 TextField("하루 목표 (ml)", text: $tempGoal)
                     .keyboardType(.numberPad)
+                // 저장 버튼: 유효한 정수이면서 0 이상일 때만 ViewModel에 반영
                 Button("목표 저장") {
                     if let g = Int(tempGoal), g >= 0 {
-                        vm.overwriteGoal(g)
-                        tempGoal = String(vm.settings.goalML)
+                        vm.overwriteGoal(g)                       // VM에 목표 반영
+                        tempGoal = String(vm.settings.goalML)     // 저장된 값으로 입력창 동기화
                     }
                 }
             }
 
+            // MARK: - 증가량(버튼 단위) 설정
             Section(header: Text("증가량 버튼")) {
                 TextField("버튼 증가량 (ml)", text: $tempStep)
                     .keyboardType(.numberPad)
                 Button("증가량 저장") {
                     if let s = Int(tempStep), s >= 0 {
-                        vm.changeStep(s)
-                        tempStep = String(vm.settings.stepML)
+                        vm.changeStep(s)                          // VM에 증가량 반영
+                        tempStep = String(vm.settings.stepML)     // 저장된 값으로 입력창 동기화
                     }
                 }
+                // 도움말: 대시보드에 1/2x, 1x, 2x 버튼 노출 안내
                 Text("대시보드에 ±½, 1x, 2x 버튼이 표시됩니다.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
+            // MARK: - 일일 리셋 시각 설정
             Section(header: Text("일일 리셋 시각")) {
+                // Stepper: 0~23 사이의 정수 증감 (라벨에 현재 시각 표시)
                 Stepper(value: $resetHour, in: 0...23) {
                     Text("매일 \(resetHour)시에 초기화")
                 }
                 Button("리셋 시각 저장") {
-                    vm.changeResetHour(resetHour)
+                    vm.changeResetHour(resetHour)                 // VM에 리셋 시각 반영
                 }
             }
 
+            // MARK: - 표시 단위 설정
             Section(header: Text("표시 단위")) {
+                // Picker: 세그먼트 스타일의 단위 선택 (ml / oz)
                 Picker("단위", selection: $unit) {
                     ForEach(AppSettings.Unit.allCases, id: \.self) { u in
-                        Text(u == .ml ? "ml" : "oz").tag(u)
+                        Text(u == .ml ? "ml" : "oz").tag(u)       // 각 케이스를 태그로 바인딩
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.segmented)                          // 상단 탭 형태의 세그먼트 스타일
+                // 선택 값 변경 시 ViewModel 설정에 반영 (값 복사 후 변경 → 전체 설정 교체)
                 .onChange(of: unit) { _ in
                     var s = vm.settings
                     s.unit = unit
@@ -58,12 +73,14 @@ struct SettingsView: View {
                 }
             }
         }
+        // 화면이 나타날 때 ViewModel의 현재 설정값을 로컬 상태에 로드(초기화)
         .onAppear {
             tempGoal = String(vm.settings.goalML)
             tempStep = String(vm.settings.stepML)
             resetHour = vm.settings.resetHour
             unit = vm.settings.unit
         }
+        // 네비게이션 상단 제목
         .navigationTitle("설정")
     }
 }
