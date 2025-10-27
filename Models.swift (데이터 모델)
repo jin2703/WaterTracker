@@ -1,0 +1,29 @@
+import Foundation
+
+struct DrinkEntry: Identifiable, Codable, Hashable {
+    let id: UUID = .init()
+    let amountML: Int
+    let timestamp: Date
+}
+
+struct DailyLog: Identifiable, Codable {
+    let date: Date
+    var goalML: Int
+    var entries: [DrinkEntry] = []
+
+    var id: String { ISO8601DateFormatter().string(from: date) }
+    var totalML: Int { entries.reduce(0) { $0 + $1.amountML } }
+    var progress: Double { goalML == 0 ? 0 : min(Double(totalML) / Double(goalML), 1) }
+    var remainingML: Int { max(goalML - totalML, 0) }
+    var isAchieved: Bool { totalML >= goalML }
+}
+
+struct AppSettings: Codable, Equatable {
+    var goalML: Int = 2000
+    var unit: Unit = .ml
+    var stepML: Int = 200
+    var resetHour: Int = 0              // 0 = 자정
+    var notificationsEnabled: Bool = false
+
+    enum Unit: String, Codable, CaseIterable { case ml, oz }
+}
