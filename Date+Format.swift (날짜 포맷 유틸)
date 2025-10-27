@@ -1,0 +1,17 @@
+import Foundation
+
+extension Date {
+    func formattedDate() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        return f.string(from: self)
+    }
+    func formattedTime() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.dateFormat = "a h:mm"
+        return f.string(from: self)
+    }
+}
