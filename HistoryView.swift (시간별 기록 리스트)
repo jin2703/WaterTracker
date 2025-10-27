@@ -1,62 +1,86 @@
-import SwiftUI
+import SwiftUI   // SwiftUI 프레임워크 임포트 (선언형 UI 구성에 사용)
 
+// 시간별 섭취 기록을 보여주는 화면(View)
+// - 오늘 날짜/총 섭취량/목표 요약 섹션 + 개별 기록 리스트로 구성
 struct HistoryView: View {
+    // @EnvironmentObject: 상위(앱 전역)에서 주입한 ViewModel을 읽어서 사용
+    // - WaterTrackerApp → RootTabView 에서 .environmentObject(vm) 로 전달됨
     @EnvironmentObject private var vm: WaterTrackerViewModel
+
+    // @State: 이 View 내부에서만 관리되는 로컬 상태 (알림 표시 여부)
     @State private var showDeleteAlert = false
+    // @State: 삭제 대상으로 선택된 DrinkEntry (롱프레스 시 설정됨)
     @State private var toDelete: DrinkEntry?
 
+    // SwiftUI의 필수 빌드 블록: 화면의 시각적 계층과 동작을 선언
     var body: some View {
+        // List: 스크롤 가능한 목록 컨테이너 (iOS 테이블뷰와 유사)
         List {
+            // Section: 목록의 구역(헤더/푸터 포함 가능). 여기선 요약 정보 섹션
             Section {
+                // HStack: 가로로 뷰 배치 (텍스트 왼쪽/값 오른쪽 정렬)
                 HStack {
-                    Text("날짜")
-                    Spacer()
-                    Text(vm.today.date.formattedDate())
-                        .foregroundStyle(.secondary)
+                    Text("날짜")                 // 라벨
+                    Spacer()                    // 남은 공간을 차지하여 오른쪽 정렬 효과
+                    Text(vm.today.date.formattedDate()) // 날짜 포맷(사용자 정의 확장)
+                        .foregroundStyle(.secondary)     // 보조 텍스트 스타일
                 }
                 HStack {
                     Text("총 섭취량")
                     Spacer()
-                    Text("\(vm.today.totalML) ml")
+                    Text("\(vm.today.totalML) ml")       // 계산 프로퍼티 totalML 사용
                 }
                 HStack {
                     Text("목표")
                     Spacer()
-                    Text("\(vm.today.goalML) ml")
+                    Text("\(vm.today.goalML) ml")        // 오늘 목표 표시
                 }
             }
 
+            // 두 번째 섹션: 시간별 개별 기록 리스트
             Section(header: Text("시간별 기록")) {
+                // 빈 상태 처리: entries 가 비어있을 때 안내 문구 표시
                 if vm.today.entries.isEmpty {
                     Text("기록이 없습니다.")
                         .foregroundStyle(.secondary)
                 } else {
+                    // ForEach: identifiable 컬렉션을 반복 렌더링
+                    // - 최신 기록이 위로 오도록 timestamp 내림차순 정렬
                     ForEach(vm.today.entries.sorted(by: { $0.timestamp > $1.timestamp })) { entry in
                         HStack {
+                            // 기록 시각(예: 오전 10:32) 표시
                             Text(entry.timestamp.formattedTime())
                             Spacer()
+                            // 기록량 강조(세미볼드)
                             Text("\(entry.amountML) ml")
                                 .fontWeight(.semibold)
                         }
+                        // contentShape: 터치 판정 영역을 HStack 전체로 확장
                         .contentShape(Rectangle())
+                        // onLongPressGesture: 항목 길게 눌러 삭제 알림 표시
                         .onLongPressGesture {
-                            toDelete = entry
-                            showDeleteAlert = true
+                            toDelete = entry          // 선택된 항목을 상태에 보관
+                            showDeleteAlert = true    // 알림 표시 트리거
                         }
                     }
                 }
             }
         }
+        // alert: 상태 바인딩(isPresented)로 표시/숨김 제어하는 시스템 알림
         .alert("이 기록을 삭제할까요?", isPresented: $showDeleteAlert) {
+            // 파괴적 액션: 실제 삭제 수행
             Button("삭제", role: .destructive) {
-                if let e = toDelete { vm.removeEntry(e) }
+                if let e = toDelete { vm.removeEntry(e) }   // ViewModel에 삭제 위임
             }
+            // 취소 액션: 단순히 알림 닫기
             Button("취소", role: .cancel) { }
         } message: {
+            // 알림 본문: 어떤 항목을 삭제하는지 확인용 상세 정보
             if let e = toDelete {
                 Text("\(e.timestamp.formattedTime()) • \(e.amountML) ml")
             }
         }
+        // 네비게이션 바 타이틀 (NavigationStack/NavigationView 내부에서 적용)
         .navigationTitle("기록")
     }
 }
