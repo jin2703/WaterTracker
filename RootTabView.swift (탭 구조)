@@ -1,0 +1,16 @@
+import SwiftUI
+
+struct RootTabView: View {
+    var body: some View {
+        TabView {
+            DashboardView()
+                .tabItem { Label("오늘", systemImage: "drop.fill") }
+
+            HistoryView()
+                .tabItem { Label("기록", systemImage: "clock.fill") }
+
+            SettingsView()
+                .tabItem { Label("설정", systemImage: "gearshape.fill") }
+        }
+    }
+}
