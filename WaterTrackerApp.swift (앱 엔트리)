@@ -1,13 +1,20 @@
-import SwiftUI
+import SwiftUI   // SwiftUI 프레임워크 불러오기 (UI 구성에 사용)
 
+// 앱의 진입점을 정의하는 구조체
 @main
 struct WaterTrackerApp: App {
+    // 앱 전역에서 공유할 ViewModel 객체 생성
+    // @StateObject → 앱 생명주기 동안 상태 유지
     @StateObject private var vm = WaterTrackerViewModel()
 
+    // 앱의 화면(Scene) 구성 정의
     var body: some Scene {
         WindowGroup {
+            // RootTabView: 앱의 메인 탭 구조 (오늘/기록/설정 화면)
             RootTabView()
+                // 환경 객체로 ViewModel 전달 → 모든 하위 뷰에서 접근 가능
                 .environmentObject(vm)
+                // 앱 실행 시(또는 재시작 시) 하루 리셋 필요 여부 확인
                 .onAppear { vm.resetIfNeeded() }
         }
     }
