@@ -1,0 +1,83 @@
+import Foundation
+import Combine
+
+final class WaterTrackerViewModel: ObservableObject {
+    @Published private(set) var today: DailyLog
+    @Published var settings: AppSettings
+
+    private let logKey = "daily_log"
+    private let settingsKey = "app_settings"
+    private let lastResetKey = "last_reset_marker"
+
+    private var cancellables = Set<AnyCancellable>()
+
+    init(now: Date = Date()) {
+        self.settings = Storage.load(AppSettings.self, key: settingsKey) ?? AppSettings()
+        let loaded = Storage.load(DailyLog.self, key: logKey)
+        // 오늘 날짜 기준으로 새 로그가 필요하면 생성
+        if let d = loaded, Calendar.current.isDate(d.date, inSameDayAs: now) {
+            self.today = d
+            self.today.goalML = settings.goalML // 목표가 바뀐 경우 동기화
+        } else {
+            self.today = DailyLog(date: now, goalML: settings.goalML)
+        }
+
+        // 변경 시 자동 저장
+        $today
+            .sink { [weak self] _ in self?.persist() }
+            .store(in: &cancellables)
+        $settings
+            .removeDuplicates()
+            .sink { [weak self] _ in self?.persist() }
+            .store(in: &cancellables)
+    }
+
+    // 액션
+    func addDrink(amount: Int? = nil) {
+        let amt = amount ?? settings.stepML
+        today.entries.append(.init(amountML: amt, timestamp: Date()))
+        // @Published 트리거를 위해 명시적 할당이 없어도 entries 변경으로 저장됨
+    }
+
+    func removeEntry(_ entry: DrinkEntry) {
+        today.entries.removeAll { $0.id == entry.id }
+    }
+
+    func overwriteGoal(_ newGoal: Int) {
+        settings.goalML = max(newGoal, 0)
+        today.goalML = settings.goalML
+    }
+
+    func changeStep(_ newStep: Int) {
+        settings.stepML = max(newStep, 0)
+    }
+
+    func changeResetHour(_ hour: Int) {
+        settings.resetHour = min(max(hour, 0), 23)
+    }
+
+    // 일일 리셋: resetHour 경과 시 새로운 DailyLog로 교체
+    func resetIfNeeded(now: Date = Date()) {
+        let cal = Calendar.current
+        // 오늘 기준 resetHour 시각
+        guard let resetToday = cal.date(bySettingHour: settings.resetHour, minute: 0, second: 0, of: now) else { return }
+        // 마지막 리셋 마커
+        let lastMarker = (UserDefaults.standard.object(forKey: lastResetKey) as? Date) ?? .distantPast
+
+        // “리셋 기준 시각”을 넘어섰고, 마지막 마커가 그 이전이면 리셋
+        if now >= resetToday && lastMarker < resetToday {
+            today = DailyLog(date: now, goalML: settings.goalML)
+            UserDefaults.standard.set(now, forKey: lastResetKey)
+        }
+
+        // 날짜가 바뀌었는데 앱을 켠 시각이 resetHour 이후라면 안전장치로도 신규 생성
+        if !cal.isDate(today.date, inSameDayAs: now) {
+            today = DailyLog(date: now, goalML: settings.goalML)
+        }
+    }
+
+    private func persist() {
+        Storage.save(today, key: logKey)
+        Storage.save(settings, key: settingsKey)
+    }
+}
