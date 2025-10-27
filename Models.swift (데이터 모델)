@@ -1,29 +1,48 @@
-import Foundation
+import Foundation   // 날짜(Date), 인코딩(Codable) 등을 사용하기 위한 기본 프레임워크
 
+// MARK: - [1] DrinkEntry 구조체
+// 사용자가 "물 마시기" 버튼을 누를 때마다 한 번의 섭취 기록을 저장하는 데이터 모델
 struct DrinkEntry: Identifiable, Codable, Hashable {
-    let id: UUID = .init()
-    let amountML: Int
-    let timestamp: Date
+    let id: UUID = .init()       // 각 기록을 구분하기 위한 고유 ID (Identifiable 프로토콜용)
+    let amountML: Int            // 한 번에 마신 물의 양 (단위: ml)
+    let timestamp: Date          // 마신 시각 (현재 시간으로 기록)
 }
 
+// MARK: - [2] DailyLog 구조체
+// 하루치 물 섭취 정보를 관리하는 모델 (기록 리스트 + 목표량 + 진행률 포함)
 struct DailyLog: Identifiable, Codable {
-    let date: Date
-    var goalML: Int
-    var entries: [DrinkEntry] = []
+    let date: Date               // 이 로그가 기록된 날짜
+    var goalML: Int              // 하루 목표 섭취량 (예: 2000ml)
+    var entries: [DrinkEntry] = []  // 하루 동안의 개별 섭취 기록 리스트
 
+    // Identifiable을 위한 고유 식별자 (날짜를 ISO8601 형식 문자열로 변환)
     var id: String { ISO8601DateFormatter().string(from: date) }
+
+    // 지금까지 마신 총 물의 양 (entries 배열의 amountML 합계)
     var totalML: Int { entries.reduce(0) { $0 + $1.amountML } }
+
+    // 목표 대비 진행률 (0.0 ~ 1.0 사이 값으로 계산)
     var progress: Double { goalML == 0 ? 0 : min(Double(totalML) / Double(goalML), 1) }
+
+    // 남은 섭취량 (목표에서 현재 섭취량을 뺀 값, 음수가 되지 않도록 처리)
     var remainingML: Int { max(goalML - totalML, 0) }
+
+    // 목표 달성 여부 (총 섭취량이 목표 이상이면 true)
     var isAchieved: Bool { totalML >= goalML }
 }
 
+// MARK: - [3] AppSettings 구조체
+// 사용자가 지정하는 앱 설정값(목표량, 단위, 버튼 증가량 등)을 저장하는 모델
 struct AppSettings: Codable, Equatable {
-    var goalML: Int = 2000
-    var unit: Unit = .ml
-    var stepML: Int = 200
-    var resetHour: Int = 0              // 0 = 자정
-    var notificationsEnabled: Bool = false
+    var goalML: Int = 2000               // 기본 목표 섭취량 (ml 단위)
+    var unit: Unit = .ml                 // 단위 설정 (ml 또는 oz)
+    var stepML: Int = 200                // 버튼 한 번 클릭 시 추가되는 물의 양
+    var resetHour: Int = 0               // 하루 리셋 시각 (기본값: 0시, 자정)
+    var notificationsEnabled: Bool = false  // 알림 기능 사용 여부 (현재는 미사용)
 
-    enum Unit: String, Codable, CaseIterable { case ml, oz }
+    // 단위(Unit) 정의 - ml(밀리리터) 또는 oz(온스)
+    enum Unit: String, Codable, CaseIterable {
+        case ml
+        case oz
+    }
 }
