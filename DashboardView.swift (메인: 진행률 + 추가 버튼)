@@ -1,0 +1,65 @@
+import SwiftUI
+
+struct DashboardView: View {
+    @EnvironmentObject private var vm: WaterTrackerViewModel
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("오늘의 물 섭취")
+                .font(.title2).bold()
+
+            // 원형 진행률
+            CircularProgressView(progress: vm.today.progress)
+                .frame(width: 180, height: 180)
+
+            VStack(spacing: 6) {
+                Text("\(vm.today.totalML) / \(vm.today.goalML) ml")
+                    .font(.headline)
+                Text(vm.today.isAchieved ? "목표 달성! 🎉" : "남은 양 \(vm.today.remainingML) ml")
+                    .foregroundStyle(vm.today.isAchieved ? .blue : .secondary)
+            }
+
+            HStack(spacing: 12) {
+                ForEach([vm.settings.stepML/2, vm.settings.stepML, vm.settings.stepML*2].uniquePositive(), id: \.self) { step in
+                    Button("+\(step)ml") {
+                        vm.addDrink(amount: step)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(.top, 8)
+
+            Divider().padding(.vertical, 8)
+
+            // 최근 5개 간단 표시
+            VStack(alignment: .leading, spacing: 8) {
+                Text("최근 기록")
+                    .font(.headline)
+                if vm.today.entries.isEmpty {
+                    Text("아직 기록이 없어요. 아래 버튼으로 추가하세요.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(vm.today.entries.sorted(by: { $0.timestamp > $1.timestamp }).prefix(5)) { e in
+                        HStack {
+                            Text(e.timestamp.formattedTime())
+                            Spacer()
+                            Text("\(e.amountML) ml")
+                        }
+                        .font(.subheadline)
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .onAppear { vm.resetIfNeeded() }
+    }
+}
+
+private extension Array where Element == Int {
+    func uniquePositive() -> [Int] {
+        Array(Set(self.filter { $0 > 0 })).sorted()
+    }
+}
