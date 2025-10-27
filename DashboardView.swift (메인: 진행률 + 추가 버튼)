@@ -1,65 +1,87 @@
-import SwiftUI
+import SwiftUI   // SwiftUI 프레임워크 임포트 (선언형 UI를 구성하기 위해 사용)
 
+// 메인 화면(DashboardView)
+// - 오늘의 물 섭취량, 진행률, 버튼 추가, 최근 기록 등을 보여주는 핵심 화면
 struct DashboardView: View {
+    // @EnvironmentObject: 앱 전체에서 공유 중인 ViewModel을 읽어오기
+    // - WaterTrackerApp.swift에서 .environmentObject(vm)으로 전달됨
     @EnvironmentObject private var vm: WaterTrackerViewModel
 
+    // View의 본문(UI 계층) 정의
     var body: some View {
+        // VStack: 세로 방향으로 뷰들을 나열 (요소 간 간격 24pt)
         VStack(spacing: 24) {
+            // 제목 텍스트
             Text("오늘의 물 섭취")
-                .font(.title2).bold()
+                .font(.title2).bold()   // 제목 스타일 적용 (중간 크기 + 굵게)
 
-            // 원형 진행률
-            CircularProgressView(progress: vm.today.progress)
-                .frame(width: 180, height: 180)
+            // MARK: - 원형 진행률 표시
+            CircularProgressView(progress: vm.today.progress) // 진행률(0~1)을 전달
+                .frame(width: 180, height: 180)                // 원 크기 지정
 
+            // 섭취량 요약 표시 (현재 / 목표)
             VStack(spacing: 6) {
+                // 현재 섭취량 / 목표 섭취량 표시
                 Text("\(vm.today.totalML) / \(vm.today.goalML) ml")
                     .font(.headline)
+                // 목표 달성 여부에 따라 다른 문구 및 색상 표시
                 Text(vm.today.isAchieved ? "목표 달성! 🎉" : "남은 양 \(vm.today.remainingML) ml")
                     .foregroundStyle(vm.today.isAchieved ? .blue : .secondary)
             }
 
+            // MARK: - 물 마시기 버튼 영역
             HStack(spacing: 12) {
+                // 증가량 3단계 버튼 생성 (절반, 기본, 두 배)
                 ForEach([vm.settings.stepML/2, vm.settings.stepML, vm.settings.stepML*2].uniquePositive(), id: \.self) { step in
+                    // 각 버튼 클릭 시, 해당 step만큼 물 섭취량 추가
                     Button("+\(step)ml") {
                         vm.addDrink(amount: step)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.borderedProminent)   // 강조된 버튼 스타일
                 }
             }
-            .padding(.top, 8)
+            .padding(.top, 8)  // 상단 여백 추가
 
+            // 구분선
             Divider().padding(.vertical, 8)
 
-            // 최근 5개 간단 표시
+            // MARK: - 최근 섭취 기록 5개 표시
             VStack(alignment: .leading, spacing: 8) {
                 Text("최근 기록")
                     .font(.headline)
                 if vm.today.entries.isEmpty {
+                    // 기록이 없을 때 표시할 안내 문구
                     Text("아직 기록이 없어요. 아래 버튼으로 추가하세요.")
                         .foregroundStyle(.secondary)
                 } else {
+                    // 최근 기록 5개만 보여줌 (내림차순 정렬)
                     ForEach(vm.today.entries.sorted(by: { $0.timestamp > $1.timestamp }).prefix(5)) { e in
                         HStack {
-                            Text(e.timestamp.formattedTime())
+                            Text(e.timestamp.formattedTime())  // 기록 시간 표시
                             Spacer()
-                            Text("\(e.amountML) ml")
+                            Text("\(e.amountML) ml")           // 섭취량 표시
                         }
-                        .font(.subheadline)
+                        .font(.subheadline)                    // 작은 폰트로 표시
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal)   // 좌우 여백 추가
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 0)    // 아래 공간 확보 (스크롤 여백용)
         }
-        .padding()
+        .padding()                   // 전체 여백 설정
+        // onAppear: 화면이 나타날 때 하루 리셋 여부 확인
         .onAppear { vm.resetIfNeeded() }
     }
 }
 
+// MARK: - Array 확장 (중복 제거 + 양수 필터링 기능)
+// 버튼 증가량 리스트에서 음수나 중복된 값을 자동 정리
 private extension Array where Element == Int {
     func uniquePositive() -> [Int] {
         Array(Set(self.filter { $0 > 0 })).sorted()
+        // 1️⃣ filter: 양수만 추출
+        // 2️⃣ Set: 중복 제거
+        // 3️⃣ sorted: 오름차순 정렬하여 일관된 순서 유지
     }
 }
